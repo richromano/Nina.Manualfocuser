@@ -51,6 +51,8 @@ namespace Cwseo.NINA.ManualFocuser.Models {
         public AsyncObservableCollection<ScatterErrorPoint> ManualFocusPoints { get; } = new AsyncObservableCollection<ScatterErrorPoint>();
         public AsyncObservableCollection<DataPoint> PlotFocusPoints { get; } = new AsyncObservableCollection<DataPoint>();
         public AsyncObservableCollection<DataPoint> ArrowPoint { get; } = new AsyncObservableCollection<DataPoint>();
+        // Collection for sampled fitted-curve points for plotting
+        public AsyncObservableCollection<DataPoint> FitCurvePoints { get; } = new AsyncObservableCollection<DataPoint>();
 
         public ManualFocuserModel(IProfileService profileService, 
             IImagingMediator imagingMediator, 
@@ -98,6 +100,10 @@ namespace Cwseo.NINA.ManualFocuser.Models {
                 ArrowPoint[0] = PlotFocusPoints[idx - 1];
                 ArrowPoint[1] = PlotFocusPoints[idx];
             }
+
+            // Automatically generate/update the fitted curve after adding a point
+            // If fit fails (not enough points or singular), FitCurvePoints remains cleared.
+            GenerateFitCurve();
         }
         public void ResetPlotData() {
             ManualFocusPoints.Clear();
@@ -106,6 +112,9 @@ namespace Cwseo.NINA.ManualFocuser.Models {
             StepDelta = 0.0;
             MinStep = 0.0;
             MinHFR = 0.0;
+
+            // Clear fit curve points as well
+            FitCurvePoints.Clear();
 
             ArrowPoint.Clear();
             ArrowPoint.Add(new DataPoint(0, 0));
@@ -297,6 +306,173 @@ namespace Cwseo.NINA.ManualFocuser.Models {
                 MeasureAndError ContrastMeasurement = new MeasureAndError() { Measure = analysisResult.AverageContrast, Stdev = stdev };
                 return ContrastMeasurement;
             }
+        }
+
+        /// <summary>
+        /// Try to fit a weighted parabola y = a*x^2 + b*x + c to the collected focus points.
+        /// Weights are taken from the scatter point Y error (attempt property names YError, ErrorY, Stdev).
+        /// </summary>
+        public bool TryFitParabolaWeighted(out double a, out double b, out double c) {
+            a = 0.0;
+            b = 0.0;
+            c = 0.0;
+
+            int count = ManualFocusPoints.Count;
+            if (count < 3) {
+                return false;
+            }
+
+            double S_w = 0.0;
+            double S_wx = 0.0;
+            double S_wx2 = 0.0;
+            double S_wx3 = 0.0;
+            double S_wx4 = 0.0;
+            double S_wy = 0.0;
+            double S_wxy = 0.0;
+            double S_wx2y = 0.0;
+
+            for (int i = 0; i < count; i++) {
+                var p = ManualFocusPoints[i];
+                double x = p.X;
+                double y = p.Y;
+
+                // Read Y error using reflection to support different ScatterErrorPoint implementations
+                double yErr = 0.0;
+                var pi = p.GetType().GetProperty("YError") ?? p.GetType().GetProperty("ErrorY") ?? p.GetType().GetProperty("Stdev");
+                if (pi != null) {
+                    try {
+                        object val = pi.GetValue(p);
+                        if (val != null) yErr = Convert.ToDouble(val);
+                    } catch {
+                        yErr = 0.0;
+                    }
+                }
+                double w = 1.0;
+                if (yErr > 0.0) {
+                    w = 1.0 / (yErr * yErr);
+                }
+
+                double x2 = x * x;
+                double x3 = x2 * x;
+                double x4 = x2 * x2;
+
+                S_w += w;
+                S_wx += w * x;
+                S_wx2 += w * x2;
+                S_wx3 += w * x3;
+                S_wx4 += w * x4;
+                S_wy += w * y;
+                S_wxy += w * x * y;
+                S_wx2y += w * x2 * y;
+            }
+
+            double[,] A = new double[3, 3] {
+                { S_wx4, S_wx3, S_wx2 },
+                { S_wx3, S_wx2, S_wx },
+                { S_wx2, S_wx,  S_w }
+            };
+            double[] B = new double[3] { S_wx2y, S_wxy, S_wy };
+
+            double[] coeffs = Solve3x3(A, B);
+            if (coeffs == null) {
+                return false;
+            }
+
+            a = coeffs[0];
+            b = coeffs[1];
+            c = coeffs[2];
+            return true;
+        }
+
+        /// <summary>
+        /// Generate sampled curve points from the fitted parabola and populate FitCurvePoints.
+        /// Call after collecting points; returns true when curve populated.
+        /// </summary>
+        public bool GenerateFitCurve(int samplePoints = 100) {
+            FitCurvePoints.Clear();
+
+            double a, b, c;
+            if (!TryFitParabolaWeighted(out a, out b, out c)) {
+                return false;
+            }
+
+            // Determine x-range from existing points
+            double minX = double.MaxValue;
+            double maxX = double.MinValue;
+            for (int i = 0; i < ManualFocusPoints.Count; i++) {
+                double x = ManualFocusPoints[i].X;
+                if (x < minX) minX = x;
+                if (x > maxX) maxX = x;
+            }
+
+            // Expand range slightly for nicer plotting
+            double span = Math.Max(1.0, maxX - minX);
+            double left = minX - span * 0.05;
+            double right = maxX + span * 0.05;
+
+            int n = Math.Max(2, samplePoints);
+            double step = (right - left) / (n - 1);
+            for (int i = 0; i < n; i++) {
+                double x = left + step * i;
+                double y = a * x * x + b * x + c;
+                FitCurvePoints.Add(new DataPoint(x, y));
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Solve a 3x3 linear system A * x = B using Gaussian elimination with partial pivoting.
+        /// Returns null if singular.
+        /// </summary>
+        private double[] Solve3x3(double[,] A, double[] B) {
+            double[,] M = new double[3, 4];
+            for (int i = 0; i < 3; i++) {
+                for (int j = 0; j < 3; j++) {
+                    M[i, j] = A[i, j];
+                }
+                M[i, 3] = B[i];
+            }
+
+            // Forward elimination with partial pivoting
+            for (int k = 0; k < 3; k++) {
+                int pivot = k;
+                double max = Math.Abs(M[k, k]);
+                for (int r = k + 1; r < 3; r++) {
+                    double absv = Math.Abs(M[r, k]);
+                    if (absv > max) {
+                        max = absv;
+                        pivot = r;
+                    }
+                }
+                if (Math.Abs(M[pivot, k]) < 1e-18) {
+                    return null;
+                }
+                if (pivot != k) {
+                    for (int c = k; c < 4; c++) {
+                        double tmp = M[k, c];
+                        M[k, c] = M[pivot, c];
+                        M[pivot, c] = tmp;
+                    }
+                }
+
+                for (int i = k + 1; i < 3; i++) {
+                    double factor = M[i, k] / M[k, k];
+                    for (int j = k; j < 4; j++) {
+                        M[i, j] -= factor * M[k, j];
+                    }
+                }
+            }
+
+            double[] x = new double[3];
+            for (int i = 2; i >= 0; i--) {
+                double sum = M[i, 3];
+                for (int j = i + 1; j < 3; j++) {
+                    sum -= M[i, j] * x[j];
+                }
+                x[i] = sum / M[i, i];
+            }
+            return x;
         }
     }
 }
