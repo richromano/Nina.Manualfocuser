@@ -42,6 +42,11 @@ namespace Cwseo.NINA.ManualFocuser.Models {
                 return profileService.ActiveProfile.FocuserSettings.AutoFocusInitialOffsetSteps;
             }
         }
+        public int AFStepSize {
+            get {
+                return profileService.ActiveProfile.FocuserSettings.AutoFocusStepSize;
+            }
+        }
 
         public AsyncObservableCollection<ScatterErrorPoint> ManualFocusPoints { get; } = new AsyncObservableCollection<ScatterErrorPoint>();
         public AsyncObservableCollection<DataPoint> PlotFocusPoints { get; } = new AsyncObservableCollection<DataPoint>();

@@ -365,37 +365,45 @@ namespace Cwseo.NINA.ManualFocuser.Dockables {
             }
         }
 
-        private async Task<int> ExecuteLinearAFAsync() {
+        private async Task<int> ExecuteLinearAFInternalAsync() {
             ResetCts();
+            this.DataModel.ResetPlotData();
+            await CaptureFirstPoint();
+            if(MinHFR==0) {
+                Notification.ShowError($"Error during ExecuteLinearAFAsync: No stars detected. Move focuser manually (In/Out) until HFR is not zero.");
+                return await Task.FromResult(0);
+            }
+            await focuserMediator.MoveFocuserRelative(Math.Abs(this.DataModel.AFStepSize * this.DataModel.NumInitialSteps), moveCts.Token);
+            await ExecuteShootAsync();
+            for (int i = 0; i < this.DataModel.NumInitialSteps * 2; i++) {
+                await focuserMediator.MoveFocuserRelative(-Math.Abs(this.DataModel.AFStepSize), moveCts.Token);
+                await ExecuteShootAsync();
+            }
+
+            double focusMinHFR = MinHFR;
+            double focusMaxHFR = MaxHFR;
+            await focuserMediator.MoveFocuserRelative(Math.Abs(this.DataModel.AFStepSize * this.DataModel.NumInitialSteps * 2), moveCts.Token);
+            await ExecuteShootAsync();
+
+            for (int i = 0; i < this.DataModel.NumInitialSteps * 4; i++) {
+                await focuserMediator.MoveFocuserRelative(-Math.Abs(this.DataModel.AFStepSize / 2), moveCts.Token);
+                await ExecuteShootAsync();
+                if (profileService.ActiveProfile.FocuserSettings.AutoFocusMethod == AFMethodEnum.CONTRASTDETECTION) {
+                    if (this.DataModel.ManualFocusPoints.Last().Y > focusMaxHFR - (focusMaxHFR - focusMinHFR) * 0.1)
+                        break;
+                } else {
+                    if (this.DataModel.ManualFocusPoints.Last().Y!=0.0&&this.DataModel.ManualFocusPoints.Last().Y < focusMinHFR + (focusMaxHFR - focusMinHFR) * 0.1)
+                        break;
+                }
+            }
+
+            return await ExecuteShootAsync();
+        }
+
+        private Task<int> ExecuteLinearAFAsync() {
             IsMoving = true;
             try {
-                this.DataModel.ResetPlotData();
-                await CaptureFirstPoint();
-                await focuserMediator.MoveFocuserRelative(Math.Abs(Properties.Settings.Default.UserStep*this.DataModel.NumInitialSteps), moveCts.Token);
-                await ExecuteShootAsync();
-                for (int i = 0; i < this.DataModel.NumInitialSteps * 2; i++) {
-                    await focuserMediator.MoveFocuserRelative(-Math.Abs(Properties.Settings.Default.UserStep), moveCts.Token);
-                    await ExecuteShootAsync();
-                }
-
-                double focusMinHFR=MinHFR;
-                double focusMaxHFR=MaxHFR;
-                await focuserMediator.MoveFocuserRelative(Math.Abs(Properties.Settings.Default.UserStep * this.DataModel.NumInitialSteps*2), moveCts.Token);
-                await ExecuteShootAsync();
-
-                for (int i = 0; i < this.DataModel.NumInitialSteps * 4; i++) {
-                    await focuserMediator.MoveFocuserRelative(-Math.Abs(Properties.Settings.Default.UserStep/2), moveCts.Token);
-                    await ExecuteShootAsync();
-                    if (profileService.ActiveProfile.FocuserSettings.AutoFocusMethod == AFMethodEnum.CONTRASTDETECTION) {
-                        if (this.DataModel.ManualFocusPoints.Last().Y > focusMaxHFR - (focusMaxHFR - focusMinHFR) * 0.1)
-                            break;
-                    } else {
-                        if (this.DataModel.ManualFocusPoints.Last().Y < focusMinHFR + (focusMaxHFR - focusMinHFR) * 0.1)
-                            break;
-                    }
-                }
-
-                return await ExecuteShootAsync();
+                return ExecuteLinearAFInternalAsync();
             } finally {
                 IsMoving = false;
             }
