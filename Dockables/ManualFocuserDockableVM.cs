@@ -397,15 +397,15 @@ namespace Cwseo.NINA.ManualFocuser.Dockables {
             double focusMinHFR=MinHFR;
             double focusMaxHFR=MaxHFR;
 
-            await focuserMediator.MoveFocuserRelative(Math.Abs(this.DataModel.AFStepSize * this.DataModel.NumInitialSteps*2), moveCts.Token);
-            await ExecuteShootAsync();
-
             // switch to fine pass
             this.DataModel.CurrentPass = 1;
             // ensure secondary cleared before fine pass
             this.DataModel.ManualFocusPointsSecondary.Clear();
             this.DataModel.PlotFocusPointsSecondary.Clear();
             this.DataModel.FitCurvePointsSecondary.Clear();
+
+            await focuserMediator.MoveFocuserRelative(Math.Abs(this.DataModel.AFStepSize * this.DataModel.NumInitialSteps * 2), moveCts.Token);
+            await ExecuteShootAsync();
 
             for (int i = 0; i < this.DataModel.NumInitialSteps * 4; i++) {
                 await focuserMediator.MoveFocuserRelative(-Math.Abs(this.DataModel.AFStepSize / 2), moveCts.Token);
