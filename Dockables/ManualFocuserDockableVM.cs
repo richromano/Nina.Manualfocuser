@@ -118,6 +118,13 @@ namespace Cwseo.NINA.ManualFocuser.Dockables {
                 RaisePropertyChanged(nameof(MinHFR));
             }
         }
+        public double MaxHFR {
+            get => this.DataModel.MaxHFR;
+            set {
+                this.DataModel.MaxHFR = value;
+                RaisePropertyChanged(nameof(MaxHFR));
+            }
+        }
         public double MinStep {
             get => this.DataModel.MinStep;
             set {
@@ -152,6 +159,7 @@ namespace Cwseo.NINA.ManualFocuser.Dockables {
         // ✅ NINA Core.Utility 커맨드만 사용 (모호성 제거)
         public ICommand ClearChartCommand { get; private set; }
         public ICommand InputResetCommand { get; private set; }
+        public ICommand LinearAFCommand { get; private set; }
         public ICommand HaltFocuserCommand { get; private set; }
         public ICommand MoveToPositionCommand { get; private set; }
         public ICommand MoveINCommand { get; private set; }
@@ -195,6 +203,7 @@ namespace Cwseo.NINA.ManualFocuser.Dockables {
                     this.DataModel.ResetPlotData();
                 } catch { }
             });
+            
             InputResetCommand = new global::NINA.Core.Utility.RelayCommand(_ => {
                 try {
                     if (this.DataModel.GetFocusPointSize() > 0) {
@@ -205,6 +214,12 @@ namespace Cwseo.NINA.ManualFocuser.Dockables {
                     UserStep = Convert.ToInt32(FocuserInfo.StepSize);
                 } catch { }
             });
+
+            LinearAFCommand = new AsyncCommand<int>(
+                () => ExecuteLinearAFAsync(),
+                o => CanMove()
+            );
+
             HaltFocuserCommand = new global::NINA.Core.Utility.RelayCommand(_ => {
                 try { moveCts?.Cancel(); } catch { }
                 try { captureCts?.Cancel(); } catch { }
@@ -344,6 +359,42 @@ namespace Cwseo.NINA.ManualFocuser.Dockables {
             try {
                 await CaptureFirstPoint();
                 await focuserMediator.MoveFocuser(Properties.Settings.Default.TargetPosition, moveCts.Token);
+                return await ExecuteShootAsync();
+            } finally {
+                IsMoving = false;
+            }
+        }
+
+        private async Task<int> ExecuteLinearAFAsync() {
+            ResetCts();
+            IsMoving = true;
+            try {
+                this.DataModel.ResetPlotData();
+                await CaptureFirstPoint();
+                await focuserMediator.MoveFocuserRelative(Math.Abs(Properties.Settings.Default.UserStep*this.DataModel.NumInitialSteps), moveCts.Token);
+                await ExecuteShootAsync();
+                for (int i = 0; i < this.DataModel.NumInitialSteps * 2; i++) {
+                    await focuserMediator.MoveFocuserRelative(-Math.Abs(Properties.Settings.Default.UserStep), moveCts.Token);
+                    await ExecuteShootAsync();
+                }
+
+                double focusMinHFR=MinHFR;
+                double focusMaxHFR=MaxHFR;
+                await focuserMediator.MoveFocuserRelative(Math.Abs(Properties.Settings.Default.UserStep * this.DataModel.NumInitialSteps*2), moveCts.Token);
+                await ExecuteShootAsync();
+
+                for (int i = 0; i < this.DataModel.NumInitialSteps * 4; i++) {
+                    await focuserMediator.MoveFocuserRelative(-Math.Abs(Properties.Settings.Default.UserStep/2), moveCts.Token);
+                    await ExecuteShootAsync();
+                    if (profileService.ActiveProfile.FocuserSettings.AutoFocusMethod == AFMethodEnum.CONTRASTDETECTION) {
+                        if (this.DataModel.ManualFocusPoints.Last().Y > focusMaxHFR - (focusMaxHFR - focusMinHFR) * 0.1)
+                            break;
+                    } else {
+                        if (this.DataModel.ManualFocusPoints.Last().Y < focusMinHFR + (focusMaxHFR - focusMinHFR) * 0.1)
+                            break;
+                    }
+                }
+
                 return await ExecuteShootAsync();
             } finally {
                 IsMoving = false;

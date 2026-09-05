@@ -25,7 +25,7 @@
         </ResourceDictionary>
     </UserControl.Resources>
     <ScrollViewer VerticalScrollBarVisibility="Auto">
-        <Grid Margin="5,0,5,0" IsEnabled="{Binding TelescopeInfo.TrackingEnabled}">
+        <Grid Margin="5,0,5,0" IsEnabled="true">
             <Grid.RowDefinitions>
                 <RowDefinition Height="auto" />
                 <RowDefinition/>
@@ -182,7 +182,19 @@
                             HorizontalContentAlignment="Center">
                         </ninactrl:CancellableButton>
                     </Grid>
-                <Grid HorizontalAlignment="Right" Margin="5,0,0,0" Grid.Column="3" Height="25" IsEnabled="{Binding IsMoving, Converter={StaticResource InverseBooleanConverter}}">
+                    <Grid HorizontalAlignment="Left" Margin="15,0,0,0" Grid.Column="3" Height="25" IsEnabled="{Binding IsMoving, Converter={StaticResource InverseBooleanConverter}}">
+                        <ninactrl:CancellableButton
+                            Command="{Binding LinearAFCommand}"
+                            ButtonText="LinearAF"
+                            MinWidth="90"
+                            ToolTip="Runs Linear AF"
+                            CancelButtonImage="{StaticResource CancelSVG}"
+                            CancelCommand="{Binding HaltFocuserCommand}"
+                            CancelToolTip="{ns:Loc LblCancel}"
+                            HorizontalContentAlignment="Center">
+                        </ninactrl:CancellableButton>
+                    </Grid>
+                    <Grid HorizontalAlignment="Right" Margin="5,0,0,0" Grid.Column="3" Height="25" IsEnabled="{Binding IsMoving, Converter={StaticResource InverseBooleanConverter}}">
                         <ninactrl:CancellableButton
                             Command="{Binding ClearChartCommand}"
                             MinWidth="70"

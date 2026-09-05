@@ -36,6 +36,12 @@ namespace Cwseo.NINA.ManualFocuser.Models {
         public double StepDelta { get; set; }
         public double MinStep { get; set; }
         public double MinHFR { get; set; }
+        public double MaxHFR { get; set; }
+        public int NumInitialSteps {
+            get {
+                return profileService.ActiveProfile.FocuserSettings.AutoFocusInitialOffsetSteps;
+            }
+        }
 
         public AsyncObservableCollection<ScatterErrorPoint> ManualFocusPoints { get; } = new AsyncObservableCollection<ScatterErrorPoint>();
         public AsyncObservableCollection<DataPoint> PlotFocusPoints { get; } = new AsyncObservableCollection<DataPoint>();
@@ -71,9 +77,13 @@ namespace Cwseo.NINA.ManualFocuser.Models {
                     MinStep = step;
                     MinHFR = hfr;
                 }
+                if (hfr > MaxHFR) {
+                    MaxHFR = hfr;
+                }
             } else {
                 MinStep = position;
                 MinHFR = hfr;
+                MaxHFR = hfr;
             }
 
             ManualFocusPoints.Add(new ScatterErrorPoint(position, hfr, 0, errorY));
