@@ -51,8 +51,15 @@ namespace Cwseo.NINA.ManualFocuser.Models {
         public AsyncObservableCollection<ScatterErrorPoint> ManualFocusPoints { get; } = new AsyncObservableCollection<ScatterErrorPoint>();
         public AsyncObservableCollection<DataPoint> PlotFocusPoints { get; } = new AsyncObservableCollection<DataPoint>();
         public AsyncObservableCollection<DataPoint> ArrowPoint { get; } = new AsyncObservableCollection<DataPoint>();
-        // Collection for sampled fitted-curve points for plotting
-        public AsyncObservableCollection<DataPoint> FitCurvePoints { get; } = new AsyncObservableCollection<DataPoint>();
+
+        // Per-pass collections (primary = coarse/pass 0, secondary = fine/pass 1)
+        public int CurrentPass { get; set; } = 0;
+        public AsyncObservableCollection<ScatterErrorPoint> ManualFocusPointsPrimary { get; } = new AsyncObservableCollection<ScatterErrorPoint>();
+        public AsyncObservableCollection<ScatterErrorPoint> ManualFocusPointsSecondary { get; } = new AsyncObservableCollection<ScatterErrorPoint>();
+        public AsyncObservableCollection<DataPoint> PlotFocusPointsPrimary { get; } = new AsyncObservableCollection<DataPoint>();
+        public AsyncObservableCollection<DataPoint> PlotFocusPointsSecondary { get; } = new AsyncObservableCollection<DataPoint>();
+        public AsyncObservableCollection<DataPoint> FitCurvePointsPrimary { get; } = new AsyncObservableCollection<DataPoint>();
+        public AsyncObservableCollection<DataPoint> FitCurvePointsSecondary { get; } = new AsyncObservableCollection<DataPoint>();
 
         public ManualFocuserModel(IProfileService profileService, 
             IImagingMediator imagingMediator, 
@@ -80,7 +87,7 @@ namespace Cwseo.NINA.ManualFocuser.Models {
                 var lastpoint = ManualFocusPoints[idx - 1];
                 StepDelta = step - lastpoint.X;
                 HFRDelta = hfr - lastpoint.Y;
-                if (hfr < MinHFR) {
+                if (hfr < MinHFR && hfr > 0.0) {
                     MinStep = step;
                     MinHFR = hfr;
                 }
@@ -89,21 +96,32 @@ namespace Cwseo.NINA.ManualFocuser.Models {
                 }
             } else {
                 MinStep = position;
-                MinHFR = hfr;
+                if(hfr > 0.0) {
+                    MinHFR = hfr;
+                }else MinHFR = double.MaxValue;
                 MaxHFR = hfr;
             }
 
-            ManualFocusPoints.Add(new ScatterErrorPoint(position, hfr, 0, errorY));
+            var scatter = new ScatterErrorPoint(position, hfr, 0, errorY);
+            ManualFocusPoints.Add(scatter);
             PlotFocusPoints.Add(new DataPoint(position, hfr));
+
+            // populate per-pass collections automatically
+            if (CurrentPass == 0) {
+                ManualFocusPointsPrimary.Add(scatter);
+                PlotFocusPointsPrimary.Add(new DataPoint(position, hfr));
+            } else {
+                ManualFocusPointsSecondary.Add(scatter);
+                PlotFocusPointsSecondary.Add(new DataPoint(position, hfr));
+            }
 
             if(idx > 0) {
                 ArrowPoint[0] = PlotFocusPoints[idx - 1];
                 ArrowPoint[1] = PlotFocusPoints[idx];
             }
 
-            // Automatically generate/update the fitted curve after adding a point
-            // If fit fails (not enough points or singular), FitCurvePoints remains cleared.
-            GenerateFitCurve();
+            // Automatically generate/update the fitted curve for the active pass
+            GenerateFitCurveForCurrentPass();
         }
         public void ResetPlotData() {
             ManualFocusPoints.Clear();
@@ -112,9 +130,15 @@ namespace Cwseo.NINA.ManualFocuser.Models {
             StepDelta = 0.0;
             MinStep = 0.0;
             MinHFR = 0.0;
+            MaxHFR = 0.0;
 
-            // Clear fit curve points as well
-            FitCurvePoints.Clear();
+            // Clear per-pass plotting and fit collections automatically
+            ManualFocusPointsPrimary.Clear();
+            ManualFocusPointsSecondary.Clear();
+            PlotFocusPointsPrimary.Clear();
+            PlotFocusPointsSecondary.Clear();
+            FitCurvePointsPrimary.Clear();
+            FitCurvePointsSecondary.Clear();
 
             ArrowPoint.Clear();
             ArrowPoint.Add(new DataPoint(0, 0));
@@ -309,15 +333,16 @@ namespace Cwseo.NINA.ManualFocuser.Models {
         }
 
         /// <summary>
-        /// Try to fit a weighted parabola y = a*x^2 + b*x + c to the collected focus points.
+        /// Try to fit a weighted parabola y = a*x^2 + b*x + c to the provided focus points.
         /// Weights are taken from the scatter point Y error (attempt property names YError, ErrorY, Stdev).
         /// </summary>
-        public bool TryFitParabolaWeighted(out double a, out double b, out double c) {
+        public bool TryFitParabolaWeighted(IEnumerable<ScatterErrorPoint> sourceEnumerable, out double a, out double b, out double c) {
             a = 0.0;
             b = 0.0;
             c = 0.0;
 
-            int count = ManualFocusPoints.Count;
+            var source = sourceEnumerable?.ToList() ?? new List<ScatterErrorPoint>();
+            int count = source.Count;
             if (count < 3) {
                 return false;
             }
@@ -332,7 +357,7 @@ namespace Cwseo.NINA.ManualFocuser.Models {
             double S_wx2y = 0.0;
 
             for (int i = 0; i < count; i++) {
-                var p = ManualFocusPoints[i];
+                var p = source[i];
                 double x = p.X;
                 double y = p.Y;
 
@@ -385,27 +410,32 @@ namespace Cwseo.NINA.ManualFocuser.Models {
         }
 
         /// <summary>
-        /// Generate sampled curve points from the fitted parabola and populate FitCurvePoints.
-        /// Call after collecting points; returns true when curve populated.
+        /// Generate sampled curve points for the active pass and populate the matching FitCurvePoints collection.
+        /// Returns true if the curve was generated.
         /// </summary>
-        public bool GenerateFitCurve(int samplePoints = 100) {
-            FitCurvePoints.Clear();
+        public bool GenerateFitCurveForCurrentPass(int samplePoints = 100) {
+            var source = CurrentPass == 0 ? (IEnumerable<ScatterErrorPoint>)ManualFocusPointsPrimary : ManualFocusPointsSecondary;
+            var target = CurrentPass == 0 ? FitCurvePointsPrimary : FitCurvePointsSecondary;
 
-            double a, b, c;
-            if (!TryFitParabolaWeighted(out a, out b, out c)) {
+            target.Clear();
+
+            if (source == null || source.Count() < 3) {
                 return false;
             }
 
-            // Determine x-range from existing points
-            double minX = double.MaxValue;
-            double maxX = double.MinValue;
-            for (int i = 0; i < ManualFocusPoints.Count; i++) {
-                double x = ManualFocusPoints[i].X;
-                if (x < minX) minX = x;
-                if (x > maxX) maxX = x;
+            double a, b, c;
+            if (!TryFitParabolaWeighted(source, out a, out b, out c)) {
+                return false;
             }
 
-            // Expand range slightly for nicer plotting
+            // Determine x-range
+            double minX = double.MaxValue;
+            double maxX = double.MinValue;
+            foreach (var p in source) {
+                if (p.X < minX) minX = p.X;
+                if (p.X > maxX) maxX = p.X;
+            }
+
             double span = Math.Max(1.0, maxX - minX);
             double left = minX - span * 0.05;
             double right = maxX + span * 0.05;
@@ -415,7 +445,7 @@ namespace Cwseo.NINA.ManualFocuser.Models {
             for (int i = 0; i < n; i++) {
                 double x = left + step * i;
                 double y = a * x * x + b * x + c;
-                FitCurvePoints.Add(new DataPoint(x, y));
+                target.Add(new DataPoint(x, y));
             }
 
             return true;

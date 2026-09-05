@@ -1,5 +1,4 @@
-﻿using Accord.Imaging.Filters;
-using Accord.Statistics.Moving;
+﻿using Accord.Statistics.Moving;
 using Grpc.Core;
 using Newtonsoft.Json.Linq;
 using NINA.Astrometry;
@@ -155,6 +154,11 @@ namespace Cwseo.NINA.ManualFocuser.Dockables {
         public AsyncObservableCollection<DataPoint> ArrowPoint {
             get => this.DataModel.ArrowPoint;
         }
+        // Expose per-pass collections for the view to bind separate series
+        public AsyncObservableCollection<DataPoint> PlotFocusPointsPrimary => this.DataModel.PlotFocusPointsPrimary;
+        public AsyncObservableCollection<DataPoint> PlotFocusPointsSecondary => this.DataModel.PlotFocusPointsSecondary;
+        public AsyncObservableCollection<DataPoint> FitCurvePointsPrimary => this.DataModel.FitCurvePointsPrimary;
+        public AsyncObservableCollection<DataPoint> FitCurvePointsSecondary => this.DataModel.FitCurvePointsSecondary;
 
         // ✅ NINA Core.Utility 커맨드만 사용 (모호성 제거)
         public ICommand ClearChartCommand { get; private set; }
@@ -367,12 +371,22 @@ namespace Cwseo.NINA.ManualFocuser.Dockables {
 
         private async Task<int> ExecuteLinearAFInternalAsync() {
             ResetCts();
+            // start fresh and ensure per-pass collections cleared
+            this.DataModel.CurrentPass = 0;
             this.DataModel.ResetPlotData();
+
             await CaptureFirstPoint();
+
             if(MinHFR==0) {
                 Notification.ShowError($"Error during ExecuteLinearAFAsync: No stars detected. Move focuser manually (In/Out) until HFR is not zero.");
                 return await Task.FromResult(0);
             }
+
+            // start fresh and ensure per-pass collections cleared
+            this.DataModel.CurrentPass = 0;
+            this.DataModel.ResetPlotData();
+
+            // initial coarse move: primary pass (CurrentPass == 0)
             await focuserMediator.MoveFocuserRelative(Math.Abs(this.DataModel.AFStepSize * this.DataModel.NumInitialSteps), moveCts.Token);
             await ExecuteShootAsync();
             for (int i = 0; i < this.DataModel.NumInitialSteps * 2; i++) {
@@ -380,10 +394,18 @@ namespace Cwseo.NINA.ManualFocuser.Dockables {
                 await ExecuteShootAsync();
             }
 
-            double focusMinHFR = MinHFR;
-            double focusMaxHFR = MaxHFR;
-            await focuserMediator.MoveFocuserRelative(Math.Abs(this.DataModel.AFStepSize * this.DataModel.NumInitialSteps * 2), moveCts.Token);
+            double focusMinHFR=MinHFR;
+            double focusMaxHFR=MaxHFR;
+
+            await focuserMediator.MoveFocuserRelative(Math.Abs(this.DataModel.AFStepSize * this.DataModel.NumInitialSteps*2), moveCts.Token);
             await ExecuteShootAsync();
+
+            // switch to fine pass
+            this.DataModel.CurrentPass = 1;
+            // ensure secondary cleared before fine pass
+            this.DataModel.ManualFocusPointsSecondary.Clear();
+            this.DataModel.PlotFocusPointsSecondary.Clear();
+            this.DataModel.FitCurvePointsSecondary.Clear();
 
             for (int i = 0; i < this.DataModel.NumInitialSteps * 4; i++) {
                 await focuserMediator.MoveFocuserRelative(-Math.Abs(this.DataModel.AFStepSize / 2), moveCts.Token);
@@ -392,7 +414,7 @@ namespace Cwseo.NINA.ManualFocuser.Dockables {
                     if (this.DataModel.ManualFocusPoints.Last().Y > focusMaxHFR - (focusMaxHFR - focusMinHFR) * 0.1)
                         break;
                 } else {
-                    if (this.DataModel.ManualFocusPoints.Last().Y!=0.0&&this.DataModel.ManualFocusPoints.Last().Y < focusMinHFR + (focusMaxHFR - focusMinHFR) * 0.1)
+                if (this.DataModel.ManualFocusPoints.Last().Y>0.0&&this.DataModel.ManualFocusPoints.Last().Y < focusMinHFR + (focusMaxHFR - focusMinHFR) * 0.1)
                         break;
                 }
             }

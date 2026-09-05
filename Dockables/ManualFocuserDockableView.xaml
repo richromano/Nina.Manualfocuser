@@ -212,7 +212,7 @@
                 PlotAreaBorderColor="{Binding Path=Color, Source={StaticResource BorderBrush}}">
                 <oxy:Plot.Legends>
                     <oxy:Legend
-                        IsLegendVisible="False"
+                        IsLegendVisible="True"
                         LegendBackground="{Binding Path=Color, Source={StaticResource BackgroundBrush}}"
                         LegendBorder="{Binding Path=Color, Source={StaticResource BorderBrush}}"
                         LegendFontSize="12"
@@ -223,7 +223,7 @@
                         LegendPosition="TopCenter"
                         LegendSymbolLength="10"
                         LegendTextColor="{Binding Path=Color, Source={StaticResource PrimaryBrush}}" />
-                </oxy:Plot.Legends>                
+                </oxy:Plot.Legends>
                 <oxy:Plot.Axes>
                     <oxy:LinearAxis
                         Title="Average HFR"
@@ -259,11 +259,55 @@
                 </oxy:Plot.Axes>
                 <oxy:Plot.Series>
                     <oxy:ScatterErrorSeries
-                        Title="HRF History"
+                        Title="HFR History"
                         ItemsSource="{Binding ManualFocusPoints}" 
                         MarkerFill="{Binding Path=Color, Source={StaticResource PrimaryBrush}}"
-                        MarkerSize="4"
-                        MarkerType="Circle"/>
+                        MarkerSize="3"
+                        MarkerType="Diamond"
+                        TrackerFormatString="Pos: {2:0}\nHFR: {4:0.000}" />
+                    <!-- Primary pass (coarse) -->
+                    <oxy:ScatterSeries Title="Points (Pass 0)"
+                                       ItemsSource="{Binding PlotFocusPointsPrimary}"
+                                       DataFieldX="X"
+                                       DataFieldY="Y"
+                                       MarkerType="Circle"
+                                       MarkerFill="Blue"
+                                       MarkerStroke="DarkBlue"
+                                       MarkerSize="5"
+                                       MarkerStrokeThickness="1"
+                                       TrackerFormatString="Pos: {2:0}\nHFR: {4:0.000}" />
+
+                    <oxy:LineSeries Title="Fit (Pass 0)"
+                                    ItemsSource="{Binding FitCurvePointsPrimary}"
+                                    DataFieldX="X"
+                                    DataFieldY="Y"
+                                    Color="Blue"
+                                    StrokeThickness="1.5"
+                                    LineStyle="Solid"
+                                    CanTrackerInterpolatePoints="True"
+                                    TrackerFormatString="Fit (P0)\nPos: {2:0}\nHFR: {4:0.000}" />
+
+                    <!-- Secondary pass (fine) -->
+                    <oxy:ScatterSeries Title="Points (Pass 1)"
+                                       ItemsSource="{Binding PlotFocusPointsSecondary}"
+                                       DataFieldX="X"
+                                       DataFieldY="Y"
+                                       MarkerType="Square"
+                                       MarkerFill="Firebrick"
+                                       MarkerStroke="DarkRed"
+                                       MarkerSize="5"
+                                       MarkerStrokeThickness="1"
+                                       TrackerFormatString="Pos: {2:0}\nHFR: {4:0.000}" />
+
+                    <oxy:LineSeries Title="Fit (Pass 1)"
+                                    ItemsSource="{Binding FitCurvePointsSecondary}"
+                                    DataFieldX="X"
+                                    DataFieldY="Y"
+                                    Color="Firebrick"
+                                    StrokeThickness="1.5"
+                                    LineStyle="Dash"
+                                    CanTrackerInterpolatePoints="True"
+                                    TrackerFormatString="Fit (P1)\nPos: {2:0}\nHFR: {4:0.000}" />
                 </oxy:Plot.Series>
                 <oxy:Plot.Annotations>
                     <oxy:PointAnnotation
