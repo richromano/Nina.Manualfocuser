@@ -415,6 +415,22 @@ namespace Cwseo.NINA.ManualFocuser.Dockables {
             double focusMinHFR=MinHFR;
             double focusMaxHFR=MaxHFR;
 
+            if (Properties.Settings.Default.UseOnePass) {
+                await focuserMediator.MoveFocuserRelative(Math.Abs(this.DataModel.AFStepSize * this.DataModel.NumInitialSteps * 2), moveCts.Token);
+
+                if (profileService.ActiveProfile.FocuserSettings.AutoFocusMethod == AFMethodEnum.CONTRASTDETECTION) {
+                    //Logger.Info("OnePass " + MaxStep.ToString() + " " + FocuserInfo.Position.ToString());
+                    await focuserMediator.MoveFocuserRelative((int)MaxStep-FocuserInfo.Position, moveCts.Token);
+                } else {
+                    await focuserMediator.MoveFocuserRelative((int)MinStep - FocuserInfo.Position, moveCts.Token);
+                }
+                //return await Task.FromResult(0);
+                return await ExecuteShootAsync();
+            }
+
+            await focuserMediator.MoveFocuserRelative(Math.Abs(this.DataModel.AFStepSize * this.DataModel.NumInitialSteps * 2), moveCts.Token);
+            await ExecuteShootAsync();
+
             // switch to fine pass
             this.DataModel.CurrentPass = 1;
             // ensure secondary cleared before fine pass
@@ -422,18 +438,7 @@ namespace Cwseo.NINA.ManualFocuser.Dockables {
             this.DataModel.PlotFocusPointsSecondary.Clear();
             this.DataModel.FitCurvePointsSecondary.Clear();
 
-            await focuserMediator.MoveFocuserRelative(Math.Abs(this.DataModel.AFStepSize * this.DataModel.NumInitialSteps * 2), moveCts.Token);
-            await ExecuteShootAsync();
-
-            if (Properties.Settings.Default.UseOnePass) {
-                if (profileService.ActiveProfile.FocuserSettings.AutoFocusMethod == AFMethodEnum.CONTRASTDETECTION) {
-                    await focuserMediator.MoveFocuserRelative((int)MaxStep-FocuserInfo.Position, moveCts.Token);
-                } else {
-                    await focuserMediator.MoveFocuserRelative((int)MinStep - FocuserInfo.Position, moveCts.Token);
-                }
-                return await ExecuteShootAsync();
-            }
-
+ 
             for (int i = 0; i < this.DataModel.NumInitialSteps * 4; i++) {
                 await focuserMediator.MoveFocuserRelative(-Math.Abs(this.DataModel.AFStepSize / 2), moveCts.Token);
                 await ExecuteShootAsync();
