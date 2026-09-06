@@ -73,6 +73,18 @@
                         <TextBlock Margin="10,0,5,0" VerticalAlignment="Center" Text="One Pass"/>
                         <CheckBox IsChecked="{Binding UseOnePass}" IsEnabled="{Binding IsMoving, Converter={StaticResource InverseBooleanConverter}}"/>
                     </StackPanel>
+                    <Grid HorizontalAlignment="Right" Margin="5,0,0,0" Grid.Column="3" Height="25" IsEnabled="{Binding IsMoving, Converter={StaticResource InverseBooleanConverter}}">
+                        <ninactrl:CancellableButton
+                            Command="{Binding LinearAFCommand}"
+                            MinWidth="70"
+                            ButtonText="LinearAF"
+                            ToolTip="Runs Linear AF"
+                            CancelButtonImage="{StaticResource CancelSVG}"
+                            CancelCommand="{Binding HaltFocuserCommand}"
+                            CancelToolTip="{ns:Loc LblCancel}"
+                            HorizontalContentAlignment="Left">
+                        </ninactrl:CancellableButton>
+                    </Grid>
                 </Grid>
                 <!-- GO/IN/OUT -->
                 <Grid Height="25" Margin="0,5,5,0"
@@ -165,7 +177,7 @@
                             MinWidth="70"
                             ButtonText="Clear All"
                             ToolTip="Clear all points"
-                            HorizontalContentAlignment="Center">
+                            HorizontalContentAlignment="Left">
                         </ninactrl:CancellableButton>
                     </Grid>
                 </Grid>
@@ -181,8 +193,8 @@
                     <!-- Target + GO -->
                     <Grid Margin="0,0,0,0" VerticalAlignment="Center" Grid.Column="0" Height="25">
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto"/>
-                            <ColumnDefinition/>
+                            <ColumnDefinition Width="180"/>
+                            <ColumnDefinition Width="350"/>
                             <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
                     </Grid>
@@ -194,7 +206,7 @@
                         <TextBlock Margin="5,0,0,0" Text="{Binding MaxHFR, StringFormat=F3}"/>
                         <TextBlock Text=")" />
                     </StackPanel>
-                    <StackPanel Orientation="Horizontal" Margin="10,0,0,0" VerticalAlignment="Center" Grid.Column="1">
+                    <StackPanel Orientation="Horizontal" Margin="10,0,0,0" VerticalAlignment="Center" Grid.Column="1" Grid.ColumnSpan="2">
                         <!-- MIN HFR -->
                         <TextBlock Text="MIN (Position, HFR) = ("/>
                         <TextBlock Margin="0,0,0,0" Text="{Binding MinStep}"/>
@@ -207,17 +219,6 @@
                         <TextBlock Margin="5,0,0,0" Text="{Binding HFRDelta, StringFormat=F3}" FontWeight="Bold"/>
                         <TextBlock Text=")" />
                     </StackPanel>
-                    <Grid HorizontalAlignment="Left" Margin="15,0,0,0" Grid.Column="4" Height="25" IsEnabled="{Binding IsMoving, Converter={StaticResource InverseBooleanConverter}}">
-                        <ninactrl:CancellableButton
-                            Command="{Binding LinearAFCommand}"
-                            ButtonText="LinearAF"
-                            MinWidth="90"
-                            ToolTip="Runs Linear AF"
-                            CancelButtonImage="{StaticResource CancelSVG}"
-                            CancelCommand="{Binding HaltFocuserCommand}"
-                            CancelToolTip="{ns:Loc LblCancel}"
-                            HorizontalContentAlignment="Center"/>
-                    </Grid>
                 </Grid>
             </StackPanel>
             <oxy:Plot
