@@ -411,10 +411,10 @@ namespace Cwseo.NINA.ManualFocuser.Dockables {
                 await focuserMediator.MoveFocuserRelative(-Math.Abs(this.DataModel.AFStepSize / 2), moveCts.Token);
                 await ExecuteShootAsync();
                 if (profileService.ActiveProfile.FocuserSettings.AutoFocusMethod == AFMethodEnum.CONTRASTDETECTION) {
-                    if (this.DataModel.ManualFocusPoints.Last().Y > focusMaxHFR - (focusMaxHFR - focusMinHFR) * 0.1)
+                    if (this.DataModel.ManualFocusPoints.Last().Y > focusMaxHFR - (focusMaxHFR - focusMinHFR) * (1.0-profileService.ActiveProfile.FocuserSettings.RSquaredThreshold))
                         break;
                 } else {
-                if (this.DataModel.ManualFocusPoints.Last().Y>0.0&&this.DataModel.ManualFocusPoints.Last().Y < focusMinHFR + (focusMaxHFR - focusMinHFR) * 0.1)
+                if (this.DataModel.ManualFocusPoints.Last().Y>0.0&&this.DataModel.ManualFocusPoints.Last().Y < focusMinHFR + (focusMaxHFR - focusMinHFR) * (1.0 - profileService.ActiveProfile.FocuserSettings.RSquaredThreshold))
                         break;
                 }
             }
