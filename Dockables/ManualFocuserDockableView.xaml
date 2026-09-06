@@ -182,6 +182,49 @@
                             HorizontalContentAlignment="Center">
                         </ninactrl:CancellableButton>
                     </Grid>
+                    <Grid HorizontalAlignment="Right" Margin="5,0,0,0" Grid.Column="3" Height="25" IsEnabled="{Binding IsMoving, Converter={StaticResource InverseBooleanConverter}}">
+                        <ninactrl:CancellableButton
+                            Command="{Binding ClearChartCommand}"
+                            MinWidth="70"
+                            ButtonText="Clear All"
+                            ToolTip="Clear all points"
+                            HorizontalContentAlignment="Center">
+                        </ninactrl:CancellableButton>
+                    </Grid>
+                </Grid>
+                <!-- Linear AF -->
+                <Grid Height="25" Margin="0,5,5,0"
+                            Visibility="{Binding FocuserInfo.Connected, Converter={StaticResource BooleanToVisibilityCollapsedConverter}}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="200"/>
+                        <ColumnDefinition Width="250"/>
+                        <ColumnDefinition Width="auto"/>
+                        <ColumnDefinition/>
+                    </Grid.ColumnDefinitions>
+                    <!-- Target + GO -->
+                    <Grid Margin="0,0,0,0" VerticalAlignment="Center" Grid.Column="0" Height="25">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                    </Grid>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,0" VerticalAlignment="Center" Grid.Column="2" IsEnabled="{Binding CameraInfo.Connected}">
+                        <TextBlock Margin="10,0,5,0" VerticalAlignment="Center" Text="One Pass"/>
+                        <CheckBox IsChecked="{Binding UseOnePass}" IsEnabled="{Binding IsMoving, Converter={StaticResource InverseBooleanConverter}}"/>
+                    </StackPanel>
+
+                    <!-- Step + In/Out -->
+                    <Grid VerticalAlignment="Center" Margin="15,0,0,0" Grid.Column="1" Height="25">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition />
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                    </Grid>
+                    <Grid HorizontalAlignment="Left" Margin="15,0,0,0" Grid.Column="2" Height="25" IsEnabled="{Binding IsMoving, Converter={StaticResource InverseBooleanConverter}}">
+                    </Grid>
                     <Grid HorizontalAlignment="Left" Margin="15,0,0,0" Grid.Column="3" Height="25" IsEnabled="{Binding IsMoving, Converter={StaticResource InverseBooleanConverter}}">
                         <ninactrl:CancellableButton
                             Command="{Binding LinearAFCommand}"
@@ -191,15 +234,6 @@
                             CancelButtonImage="{StaticResource CancelSVG}"
                             CancelCommand="{Binding HaltFocuserCommand}"
                             CancelToolTip="{ns:Loc LblCancel}"
-                            HorizontalContentAlignment="Center">
-                        </ninactrl:CancellableButton>
-                    </Grid>
-                    <Grid HorizontalAlignment="Right" Margin="5,0,0,0" Grid.Column="3" Height="25" IsEnabled="{Binding IsMoving, Converter={StaticResource InverseBooleanConverter}}">
-                        <ninactrl:CancellableButton
-                            Command="{Binding ClearChartCommand}"
-                            MinWidth="70"
-                            ButtonText="Clear All"
-                            ToolTip="Clear all points"
                             HorizontalContentAlignment="Center">
                         </ninactrl:CancellableButton>
                     </Grid>

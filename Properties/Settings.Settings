@@ -17,5 +17,8 @@
     <Setting Name="TakeShootAfterMove" Type="System.Boolean" Scope="User">
       <Value Profile="(Default)">True</Value>
     </Setting>
+	<Setting Name="UseOnePass" Type="System.Boolean" Scope="User">
+	  <Value Profile="(Default)">True</Value>
+	</Setting>
   </Settings>
 </SettingsFile>
