@@ -254,84 +254,91 @@ namespace Cwseo.NINA.ManualFocuser.Models {
         private async Task<MeasureAndError> EvaluateExposure(IExposureData exposureData, CancellationToken token, IProgress<ApplicationStatus> progress) {
             Logger.Trace("Evaluating Exposure");
 
-            var imageData = await exposureData.ToImageData(progress, token);
+            try {
+                var imageData = await exposureData.ToImageData(progress, token);
 
-            bool autoStretch = true;
-            //If using contrast based statistics, no need to stretch
-            if (profileService.ActiveProfile.FocuserSettings.AutoFocusMethod == AFMethodEnum.CONTRASTDETECTION && profileService.ActiveProfile.FocuserSettings.ContrastDetectionMethod == ContrastDetectionMethodEnum.Statistics) {
-                autoStretch = false;
-            }
-            var image = await imagingMediator.PrepareImage(imageData, new PrepareImageParameters(autoStretch, false), token);
-
-            var imageProperties = image.RawImageData.Properties;
-            var imageStatistics = await image.RawImageData.Statistics.Task;
-
-            //Very simple to directly provide result if we use statistics based contrast detection
-            if (profileService.ActiveProfile.FocuserSettings.AutoFocusMethod == AFMethodEnum.CONTRASTDETECTION && profileService.ActiveProfile.FocuserSettings.ContrastDetectionMethod == ContrastDetectionMethodEnum.Statistics) {
-                return new MeasureAndError() { Measure = 100 * imageStatistics.StDev / imageStatistics.Mean, Stdev = 0.01 };
-            }
-
-            System.Windows.Media.PixelFormat pixelFormat;
-
-            if (imageProperties.IsBayered && profileService.ActiveProfile.ImageSettings.DebayerImage) {
-                pixelFormat = System.Windows.Media.PixelFormats.Rgb48;
-            } else {
-                pixelFormat = System.Windows.Media.PixelFormats.Gray16;
-            }
-
-            if (profileService.ActiveProfile.FocuserSettings.AutoFocusMethod == AFMethodEnum.STARHFR) {
-                var analysisParams = new StarDetectionParams() {
-                    IsAutoFocus = true,
-                    Sensitivity = profileService.ActiveProfile.ImageSettings.StarSensitivity,
-                    NoiseReduction = profileService.ActiveProfile.ImageSettings.NoiseReduction,
-                    NumberOfAFStars = profileService.ActiveProfile.FocuserSettings.AutoFocusUseBrightestStars
-                };
-
-                if (profileService.ActiveProfile.FocuserSettings.AutoFocusInnerCropRatio < 1 && !IsSubSampleEnabled()) {
-                    analysisParams.UseROI = true;
-                    analysisParams.InnerCropRatio = profileService.ActiveProfile.FocuserSettings.AutoFocusInnerCropRatio;
+                bool autoStretch = true;
+                //If using contrast based statistics, no need to stretch
+                if (profileService.ActiveProfile.FocuserSettings.AutoFocusMethod == AFMethodEnum.CONTRASTDETECTION && profileService.ActiveProfile.FocuserSettings.ContrastDetectionMethod == ContrastDetectionMethodEnum.Statistics) {
+                    autoStretch = false;
                 }
-                if (profileService.ActiveProfile.FocuserSettings.AutoFocusOuterCropRatio < 1) {
-                    analysisParams.UseROI = true;
-                    if (IsSubSampleEnabled() && profileService.ActiveProfile.FocuserSettings.AutoFocusOuterCropRatio < 1.0) {
-                        // We have subsampled already. Since outer crop is set, the user wants a donut shape
-                        // OuterCrop of 0 activates the donut logic without any outside clipping, and we scale the inner ratio accordingly
-                        analysisParams.OuterCropRatio = 0.0;
-                        analysisParams.InnerCropRatio = profileService.ActiveProfile.FocuserSettings.AutoFocusInnerCropRatio / profileService.ActiveProfile.FocuserSettings.AutoFocusOuterCropRatio;
-                    } else {
-                        analysisParams.OuterCropRatio = profileService.ActiveProfile.FocuserSettings.AutoFocusOuterCropRatio;
+                var image = await imagingMediator.PrepareImage(imageData, new PrepareImageParameters(autoStretch, false), token);
+
+                var imageProperties = image.RawImageData.Properties;
+                var imageStatistics = await image.RawImageData.Statistics.Task;
+
+                //Very simple to directly provide result if we use statistics based contrast detection
+                if (profileService.ActiveProfile.FocuserSettings.AutoFocusMethod == AFMethodEnum.CONTRASTDETECTION && profileService.ActiveProfile.FocuserSettings.ContrastDetectionMethod == ContrastDetectionMethodEnum.Statistics) {
+                    return new MeasureAndError() { Measure = 100 * imageStatistics.StDev / imageStatistics.Mean, Stdev = 0.01 };
+                }
+
+                System.Windows.Media.PixelFormat pixelFormat;
+
+                if (imageProperties.IsBayered && profileService.ActiveProfile.ImageSettings.DebayerImage) {
+                    pixelFormat = System.Windows.Media.PixelFormats.Rgb48;
+                } else {
+                    pixelFormat = System.Windows.Media.PixelFormats.Gray16;
+                }
+
+                if (profileService.ActiveProfile.FocuserSettings.AutoFocusMethod == AFMethodEnum.STARHFR) {
+                    var analysisParams = new StarDetectionParams() {
+                        IsAutoFocus = true,
+                        Sensitivity = profileService.ActiveProfile.ImageSettings.StarSensitivity,
+                        NoiseReduction = profileService.ActiveProfile.ImageSettings.NoiseReduction,
+                        NumberOfAFStars = profileService.ActiveProfile.FocuserSettings.AutoFocusUseBrightestStars
+                    };
+
+                    if (profileService.ActiveProfile.FocuserSettings.AutoFocusInnerCropRatio < 1 && !IsSubSampleEnabled()) {
+                        analysisParams.UseROI = true;
+                        analysisParams.InnerCropRatio = profileService.ActiveProfile.FocuserSettings.AutoFocusInnerCropRatio;
                     }
+                    if (profileService.ActiveProfile.FocuserSettings.AutoFocusOuterCropRatio < 1) {
+                        analysisParams.UseROI = true;
+                        if (IsSubSampleEnabled() && profileService.ActiveProfile.FocuserSettings.AutoFocusOuterCropRatio < 1.0) {
+                            // We have subsampled already. Since outer crop is set, the user wants a donut shape
+                            // OuterCrop of 0 activates the donut logic without any outside clipping, and we scale the inner ratio accordingly
+                            analysisParams.OuterCropRatio = 0.0;
+                            analysisParams.InnerCropRatio = profileService.ActiveProfile.FocuserSettings.AutoFocusInnerCropRatio / profileService.ActiveProfile.FocuserSettings.AutoFocusOuterCropRatio;
+                        } else {
+                            analysisParams.OuterCropRatio = profileService.ActiveProfile.FocuserSettings.AutoFocusOuterCropRatio;
+                        }
+                    }
+
+                    var starDetection = starDetectionSelector.GetBehavior();
+                    var analysisResult = await starDetection.Detect(image, pixelFormat, analysisParams, progress, token);
+                    image.UpdateAnalysis(analysisParams, analysisResult);
+
+                    if (profileService.ActiveProfile.ImageSettings.AnnotateImage) {
+                        token.ThrowIfCancellationRequested();
+                        var starAnnotator = starAnnotatorSelector.GetBehavior();
+                        var annotatedImage = await starAnnotator.GetAnnotatedImage(analysisParams, analysisResult, image.Image, token: token);
+                        imagingMediator.SetImage(annotatedImage);
+                    }
+
+                    var stdev = double.IsNaN(analysisResult.HFRStdDev) ? 0 : analysisResult.HFRStdDev;
+                    return new MeasureAndError() { Measure = analysisResult.AverageHFR, Stdev = stdev };
+                } else {
+                    var analysis = new ContrastDetection();
+                    var analysisParams = new ContrastDetectionParams() {
+                        Sensitivity = profileService.ActiveProfile.ImageSettings.StarSensitivity,
+                        NoiseReduction = profileService.ActiveProfile.ImageSettings.NoiseReduction,
+                        Method = profileService.ActiveProfile.FocuserSettings.ContrastDetectionMethod
+                    };
+                    if (profileService.ActiveProfile.FocuserSettings.AutoFocusInnerCropRatio < 1 && !IsSubSampleEnabled()) {
+                        analysisParams.UseROI = true;
+                        analysisParams.InnerCropRatio = profileService.ActiveProfile.FocuserSettings.AutoFocusInnerCropRatio;
+                    }
+                    var analysisResult = await analysis.Measure(image, analysisParams, progress, token);
+
+                    var stdev = double.IsNaN(analysisResult.ContrastStdev) ? 0 : analysisResult.ContrastStdev;
+                    MeasureAndError ContrastMeasurement = new MeasureAndError() { Measure = analysisResult.AverageContrast, Stdev = stdev };
+                    return ContrastMeasurement;
                 }
-
-                var starDetection = starDetectionSelector.GetBehavior();
-                var analysisResult = await starDetection.Detect(image, pixelFormat, analysisParams, progress, token);
-                image.UpdateAnalysis(analysisParams, analysisResult);
-
-                if (profileService.ActiveProfile.ImageSettings.AnnotateImage) {
-                    token.ThrowIfCancellationRequested();
-                    var starAnnotator = starAnnotatorSelector.GetBehavior();
-                    var annotatedImage = await starAnnotator.GetAnnotatedImage(analysisParams, analysisResult, image.Image, token: token);
-                    imagingMediator.SetImage(annotatedImage);
-                }
-
-                var stdev = double.IsNaN(analysisResult.HFRStdDev) ? 0 : analysisResult.HFRStdDev;
-                return new MeasureAndError() { Measure = analysisResult.AverageHFR, Stdev = stdev };
-            } else {
-                var analysis = new ContrastDetection();
-                var analysisParams = new ContrastDetectionParams() {
-                    Sensitivity = profileService.ActiveProfile.ImageSettings.StarSensitivity,
-                    NoiseReduction = profileService.ActiveProfile.ImageSettings.NoiseReduction,
-                    Method = profileService.ActiveProfile.FocuserSettings.ContrastDetectionMethod
-                };
-                if (profileService.ActiveProfile.FocuserSettings.AutoFocusInnerCropRatio < 1 && !IsSubSampleEnabled()) {
-                    analysisParams.UseROI = true;
-                    analysisParams.InnerCropRatio = profileService.ActiveProfile.FocuserSettings.AutoFocusInnerCropRatio;
-                }
-                var analysisResult = await analysis.Measure(image, analysisParams, progress, token);
-
-                var stdev = double.IsNaN(analysisResult.ContrastStdev) ? 0 : analysisResult.ContrastStdev;
-                MeasureAndError ContrastMeasurement = new MeasureAndError() { Measure = analysisResult.AverageContrast, Stdev = stdev };
-                return ContrastMeasurement;
+            } catch (Exception e) {
+                token.ThrowIfCancellationRequested();
+                MeasureAndError errorMeasurement = new MeasureAndError() { Measure = 0, Stdev = 0 };
+                Logger.Error(e);
+                return errorMeasurement;
             }
         }
 
