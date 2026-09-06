@@ -425,12 +425,14 @@ namespace Cwseo.NINA.ManualFocuser.Dockables {
             await focuserMediator.MoveFocuserRelative(Math.Abs(this.DataModel.AFStepSize * this.DataModel.NumInitialSteps * 2), moveCts.Token);
             await ExecuteShootAsync();
 
-            /*if (Properties.Settings.Default.UseOnePass) {
-             * MaxStep = FocuserInfo.Position;
-             * MinStep
-                await focuserMediator.MoveFocuserRelative(-Math.Abs(this.DataModel.AFStepSize / 2), moveCts.Token);
+            if (Properties.Settings.Default.UseOnePass) {
+                if (profileService.ActiveProfile.FocuserSettings.AutoFocusMethod == AFMethodEnum.CONTRASTDETECTION) {
+                    await focuserMediator.MoveFocuserRelative((int)MaxStep-FocuserInfo.Position, moveCts.Token);
+                } else {
+                    await focuserMediator.MoveFocuserRelative((int)MinStep - FocuserInfo.Position, moveCts.Token);
+                }
                 return await ExecuteShootAsync();
-            }*/
+            }
 
             for (int i = 0; i < this.DataModel.NumInitialSteps * 4; i++) {
                 await focuserMediator.MoveFocuserRelative(-Math.Abs(this.DataModel.AFStepSize / 2), moveCts.Token);
@@ -501,6 +503,8 @@ namespace Cwseo.NINA.ManualFocuser.Dockables {
                     measurement.Stdev = 1000;
                 }
                 this.DataModel.AddFocusPoint(FocuserInfo.Position, measurement);
+                RaisePropertyChanged(nameof(MaxStep));
+                RaisePropertyChanged(nameof(MaxHFR));
                 RaisePropertyChanged(nameof(MinStep));
                 RaisePropertyChanged(nameof(MinHFR));
                 RaisePropertyChanged(nameof(StepDelta));
