@@ -142,6 +142,13 @@ namespace Cwseo.NINA.ManualFocuser.Dockables {
                 RaisePropertyChanged(nameof(MinStep));
             }
         }
+        public double MaxStep {
+            get => this.DataModel.MaxStep;
+            set {
+                this.DataModel.MaxStep = value;
+                RaisePropertyChanged(nameof(MaxStep));
+            }
+        }
         public double StepDelta {
             get => this.DataModel.StepDelta;
             set {
@@ -419,6 +426,8 @@ namespace Cwseo.NINA.ManualFocuser.Dockables {
             await ExecuteShootAsync();
 
             /*if (Properties.Settings.Default.UseOnePass) {
+             * MaxStep = FocuserInfo.Position;
+             * MinStep
                 await focuserMediator.MoveFocuserRelative(-Math.Abs(this.DataModel.AFStepSize / 2), moveCts.Token);
                 return await ExecuteShootAsync();
             }*/

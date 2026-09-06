@@ -35,6 +35,7 @@ namespace Cwseo.NINA.ManualFocuser.Models {
         public double HFRDelta { get; set; }
         public double StepDelta { get; set; }
         public double MinStep { get; set; }
+        public double MaxStep { get; set; }
         public double MinHFR { get; set; }
         public double MaxHFR { get; set; }
         public int NumInitialSteps {
@@ -92,6 +93,7 @@ namespace Cwseo.NINA.ManualFocuser.Models {
                     MinHFR = hfr;
                 }
                 if (hfr > MaxHFR) {
+                    MaxStep = step;
                     MaxHFR = hfr;
                 }
             } else {
@@ -100,6 +102,7 @@ namespace Cwseo.NINA.ManualFocuser.Models {
                     MinHFR = hfr;
                 }else MinHFR = double.MaxValue;
                 MaxHFR = hfr;
+                MaxStep = position;
             }
 
             var scatter = new ScatterErrorPoint(position, hfr, 0, errorY);

@@ -209,6 +209,14 @@
                             <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
                     </Grid>
+                    <StackPanel Orientation="Horizontal" Margin="10,0,0,0" VerticalAlignment="Center" Grid.Column="1">
+                        <!-- MIN HFR -->
+                        <TextBlock Text="MAX (Position, HFR) = ("/>
+                        <TextBlock Margin="0,0,0,0" Text="{Binding MaxStep}"/>
+                        <TextBlock Text="," />
+                        <TextBlock Margin="5,0,0,0" Text="{Binding MaxHFR, StringFormat=F3}"/>
+                        <TextBlock Text=")" />
+                    </StackPanel>
                     <StackPanel Orientation="Horizontal" Margin="0,0,0,0" VerticalAlignment="Center" Grid.Column="2" IsEnabled="{Binding CameraInfo.Connected}">
                         <TextBlock Margin="10,0,5,0" VerticalAlignment="Center" Text="One Pass"/>
                         <CheckBox IsChecked="{Binding UseOnePass}" IsEnabled="{Binding IsMoving, Converter={StaticResource InverseBooleanConverter}}"/>
