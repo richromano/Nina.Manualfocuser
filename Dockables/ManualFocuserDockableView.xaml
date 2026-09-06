@@ -83,19 +83,22 @@
                         <TextBlock Margin="10,0,5,0" VerticalAlignment="Center" Text="Expose after focus"/>
                         <CheckBox IsChecked="{Binding TakeShootAfterMove}" IsEnabled="{Binding IsMoving, Converter={StaticResource InverseBooleanConverter}}"/>
                     </StackPanel>
-                    <StackPanel Orientation="Horizontal" Margin="10,0,0,0" VerticalAlignment="Center" Grid.Column="3">
-                        <!-- MIN HFR -->
-                        <TextBlock Text="MIN (Position, HFR) = ("/>
-                        <TextBlock Margin="0,0,0,0" Text="{Binding MinStep}"/>
-                        <TextBlock Text="," />
-                        <TextBlock Margin="5,0,0,0" Text="{Binding MinHFR, StringFormat=F3}"/>
-                        <TextBlock Text=")" />
-                        <TextBlock Text=", Delta= ("/>
-                        <TextBlock Margin="0,0,0,0" Text="{Binding StepDelta}" FontWeight="Bold"/>
-                        <TextBlock Text="," />
-                        <TextBlock Margin="5,0,0,0" Text="{Binding HFRDelta, StringFormat=F3}" FontWeight="Bold"/>
-                        <TextBlock Text=")" />
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,0" VerticalAlignment="Center" Grid.Column="2" IsEnabled="{Binding CameraInfo.Connected}">
+                        <TextBlock Margin="10,0,5,0" VerticalAlignment="Center" Text="One Pass"/>
+                        <CheckBox IsChecked="{Binding UseOnePass}" IsEnabled="{Binding IsMoving, Converter={StaticResource InverseBooleanConverter}}"/>
                     </StackPanel>
+                    <Grid HorizontalAlignment="Left" Margin="15,0,0,0" Grid.Column="3" Height="25" IsEnabled="{Binding IsMoving, Converter={StaticResource InverseBooleanConverter}}">
+                        <ninactrl:CancellableButton
+                            Command="{Binding LinearAFCommand}"
+                            ButtonText="LinearAF"
+                            MinWidth="90"
+                            ToolTip="Runs Linear AF"
+                            CancelButtonImage="{StaticResource CancelSVG}"
+                            CancelCommand="{Binding HaltFocuserCommand}"
+                            CancelToolTip="{ns:Loc LblCancel}"
+                            HorizontalContentAlignment="Center">
+                        </ninactrl:CancellableButton>
+                    </Grid>
                 </Grid>
                 <!-- GO/IN/OUT -->
                 <Grid Height="25" Margin="0,5,5,0"
@@ -217,10 +220,6 @@
                         <TextBlock Margin="5,0,0,0" Text="{Binding MaxHFR, StringFormat=F3}"/>
                         <TextBlock Text=")" />
                     </StackPanel>
-                    <StackPanel Orientation="Horizontal" Margin="0,0,0,0" VerticalAlignment="Center" Grid.Column="2" IsEnabled="{Binding CameraInfo.Connected}">
-                        <TextBlock Margin="10,0,5,0" VerticalAlignment="Center" Text="One Pass"/>
-                        <CheckBox IsChecked="{Binding UseOnePass}" IsEnabled="{Binding IsMoving, Converter={StaticResource InverseBooleanConverter}}"/>
-                    </StackPanel>
 
                     <!-- Step + In/Out -->
                     <Grid VerticalAlignment="Center" Margin="15,0,0,0" Grid.Column="1" Height="25">
@@ -233,18 +232,19 @@
                     </Grid>
                     <Grid HorizontalAlignment="Left" Margin="15,0,0,0" Grid.Column="2" Height="25" IsEnabled="{Binding IsMoving, Converter={StaticResource InverseBooleanConverter}}">
                     </Grid>
-                    <Grid HorizontalAlignment="Left" Margin="15,0,0,0" Grid.Column="3" Height="25" IsEnabled="{Binding IsMoving, Converter={StaticResource InverseBooleanConverter}}">
-                        <ninactrl:CancellableButton
-                            Command="{Binding LinearAFCommand}"
-                            ButtonText="LinearAF"
-                            MinWidth="90"
-                            ToolTip="Runs Linear AF"
-                            CancelButtonImage="{StaticResource CancelSVG}"
-                            CancelCommand="{Binding HaltFocuserCommand}"
-                            CancelToolTip="{ns:Loc LblCancel}"
-                            HorizontalContentAlignment="Center">
-                        </ninactrl:CancellableButton>
-                    </Grid>
+                    <StackPanel Orientation="Horizontal" Margin="10,0,0,0" VerticalAlignment="Center" Grid.Column="3">
+                        <!-- MIN HFR -->
+                        <TextBlock Text="MIN (Position, HFR) = ("/>
+                        <TextBlock Margin="0,0,0,0" Text="{Binding MinStep}"/>
+                        <TextBlock Text="," />
+                        <TextBlock Margin="5,0,0,0" Text="{Binding MinHFR, StringFormat=F3}"/>
+                        <TextBlock Text=")" />
+                        <TextBlock Text=", Delta= ("/>
+                        <TextBlock Margin="0,0,0,0" Text="{Binding StepDelta}" FontWeight="Bold"/>
+                        <TextBlock Text="," />
+                        <TextBlock Margin="5,0,0,0" Text="{Binding HFRDelta, StringFormat=F3}" FontWeight="Bold"/>
+                        <TextBlock Text=")" />
+                    </StackPanel>
                 </Grid>
             </StackPanel>
             <oxy:Plot
