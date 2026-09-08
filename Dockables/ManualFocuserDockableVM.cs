@@ -428,8 +428,8 @@ namespace Cwseo.NINA.ManualFocuser.Dockables {
                 return await ExecuteShootAsync();
             }
 
-            await focuserMediator.MoveFocuserRelative(Math.Abs(this.DataModel.AFStepSize * this.DataModel.NumInitialSteps * 2), moveCts.Token);
-            await ExecuteShootAsync();
+            //await focuserMediator.MoveFocuserRelative(Math.Abs(this.DataModel.AFStepSize * this.DataModel.NumInitialSteps * 2), moveCts.Token);
+            //await ExecuteShootAsync();
 
             // switch to fine pass
             this.DataModel.CurrentPass = 1;
@@ -439,8 +439,8 @@ namespace Cwseo.NINA.ManualFocuser.Dockables {
             this.DataModel.FitCurvePointsSecondary.Clear();
 
  
-            for (int i = 0; i < this.DataModel.NumInitialSteps * 4; i++) {
-                await focuserMediator.MoveFocuserRelative(-Math.Abs(this.DataModel.AFStepSize / 2), moveCts.Token);
+            for (int i = 0; i < this.DataModel.NumInitialSteps * 6; i++) {
+                await focuserMediator.MoveFocuserRelative(Math.Abs(this.DataModel.AFStepSize / 2), moveCts.Token);
                 await ExecuteShootAsync();
                 if (profileService.ActiveProfile.FocuserSettings.AutoFocusMethod == AFMethodEnum.CONTRASTDETECTION) {
                     if (this.DataModel.ManualFocusPoints.Last().Y > focusMaxHFR - (focusMaxHFR - focusMinHFR) * (1.0-profileService.ActiveProfile.FocuserSettings.RSquaredThreshold))

@@ -38,6 +38,9 @@ namespace Cwseo.NINA.ManualFocuser.Models {
         public double MaxStep { get; set; }
         public double MinHFR { get; set; }
         public double MaxHFR { get; set; }
+        public double XPoly { get; set; }
+        public double YPoly { get; set; }
+        public bool MaxPolyTrue { get; set; }
         public int NumInitialSteps {
             get {
                 return profileService.ActiveProfile.FocuserSettings.AutoFocusInitialOffsetSteps;
@@ -123,8 +126,15 @@ namespace Cwseo.NINA.ManualFocuser.Models {
                 ArrowPoint[1] = PlotFocusPoints[idx];
             }
 
+            bool mpolytrue = false;
+            double xpoly = 0.0;
+            double ypoly = 0.0;
+
             // Automatically generate/update the fitted curve for the active pass
-            GenerateFitCurveForCurrentPass();
+            bool v = GenerateFitCurveForCurrentPass(out mpolytrue, out xpoly, out ypoly);
+            MaxPolyTrue = mpolytrue;
+            XPoly = xpoly;
+            YPoly = ypoly;
         }
         public void ResetPlotData() {
             ManualFocusPoints.Clear();
@@ -423,11 +433,15 @@ namespace Cwseo.NINA.ManualFocuser.Models {
         /// Generate sampled curve points for the active pass and populate the matching FitCurvePoints collection.
         /// Returns true if the curve was generated.
         /// </summary>
-        public bool GenerateFitCurveForCurrentPass(int samplePoints = 100) {
+        public bool GenerateFitCurveForCurrentPass(out bool max, out double xvalue, out double yvalue, int samplePoints = 100) {
             var source = CurrentPass == 0 ? (IEnumerable<ScatterErrorPoint>)ManualFocusPointsPrimary : ManualFocusPointsSecondary;
             var target = CurrentPass == 0 ? FitCurvePointsPrimary : FitCurvePointsSecondary;
 
             target.Clear();
+
+            max= false;
+            xvalue = 0.0;
+            yvalue = 0.0;
 
             if (source == null || source.Count() < 3) {
                 return false;
@@ -456,6 +470,15 @@ namespace Cwseo.NINA.ManualFocuser.Models {
                 double x = left + step * i;
                 double y = a * x * x + b * x + c;
                 target.Add(new DataPoint(x, y));
+            }
+
+            xvalue = -b / (2 * a);
+            yvalue = a * xvalue * xvalue + b * xvalue + c;
+
+            if(a<0) {
+                max = true;
+            } else {
+                max = false;
             }
 
             return true;
