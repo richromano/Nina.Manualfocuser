@@ -439,8 +439,8 @@ namespace Cwseo.NINA.ManualFocuser.Dockables {
             this.DataModel.FitCurvePointsSecondary.Clear();
 
  
-            for (int i = 0; i < this.DataModel.NumInitialSteps * 6; i++) {
-                await focuserMediator.MoveFocuserRelative(Math.Abs(this.DataModel.AFStepSize / 2), moveCts.Token);
+            for (int i = 0; i < this.DataModel.NumInitialSteps * 3; i++) {
+                await focuserMediator.MoveFocuserRelative(Math.Abs(this.DataModel.AFStepSize ), moveCts.Token);
                 await ExecuteShootAsync();
                 if (profileService.ActiveProfile.FocuserSettings.AutoFocusMethod == AFMethodEnum.CONTRASTDETECTION) {
                     if (this.DataModel.ManualFocusPoints.Last().Y > focusMaxHFR - (focusMaxHFR - focusMinHFR) * (1.0-profileService.ActiveProfile.FocuserSettings.RSquaredThreshold))
