@@ -39,10 +39,10 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
-using Cwseo.NINA.ManualFocuser.Models;
+using RTG.ManualFocuser.Models;
 using static NINA.Image.FileFormat.XISF.XISFImageProperty.Instrument;
 
-namespace Cwseo.NINA.ManualFocuser.Dockables {
+namespace RTG.ManualFocuser.Dockables {
     /// <summary>
     /// This Class shows the basic principle on how to add a new panel to N.I.N.A. Imaging tab via the plugin interface
     /// In this example an altitude chart is added to the imaging tab that shows the altitude chart based on the position of the telescope    
@@ -196,8 +196,8 @@ namespace Cwseo.NINA.ManualFocuser.Dockables {
 
             // This will reference the resource dictionary to import the SVG graphic and assign it as the icon for the header bar
             var dict = new ResourceDictionary();
-            dict.Source = new Uri("Cwseo.NINA.ManualFocuser;component/Dockables/ManualFocuserDockableTemplates.xaml", UriKind.RelativeOrAbsolute);
-            ImageGeometry = (System.Windows.Media.GeometryGroup)dict["Cwseo.NINA.ManualFocuser_SVG"];
+            dict.Source = new Uri("RTG.ManualFocuser;component/Dockables/ManualFocuserDockableTemplates.xaml", UriKind.RelativeOrAbsolute);
+            ImageGeometry = (System.Windows.Media.GeometryGroup)dict["RTG.ManualFocuser_SVG"];
             ImageGeometry.Freeze();
 
             this.cameraMediator = cameraMediator;

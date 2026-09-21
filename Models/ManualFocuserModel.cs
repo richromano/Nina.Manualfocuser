@@ -24,7 +24,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Cwseo.NINA.ManualFocuser.Models {
+namespace RTG.ManualFocuser.Models {
     public class ManualFocuserModel {
 
         private IProfileService profileService;

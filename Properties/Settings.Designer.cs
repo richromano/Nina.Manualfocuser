@@ -8,7 +8,7 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-namespace Cwseo.NINA.ManualFocuser.Properties {
+namespace RTG.ManualFocuser.Properties {
     
     
     [global::System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
@@ -22,7 +22,79 @@ namespace Cwseo.NINA.ManualFocuser.Properties {
                 return defaultInstance;
             }
         }
+
+/*        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool UpdateSettings {
+            get {
+                return ((bool)(this["UpdateSettings"]));
+            }
+            set {
+                this["UpdateSettings"] = value;
+            }
+        }*/
         
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool PrepareImage {
+            get {
+                return ((bool)(this["PrepareImage"]));
+            }
+            set {
+                this["PrepareImage"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("0.12")]
+        public double Stretchfactor {
+            get {
+                return ((double)(this["Stretchfactor"]));
+            }
+            set {
+                this["Stretchfactor"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("-2.8")]
+        public double Blackclipping {
+            get {
+                return ((double)(this["Blackclipping"]));
+            }
+            set {
+                this["Blackclipping"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("5000")]
+        public int FocusStopPosition {
+            get {
+                return ((int)(this["FocusStopPosition"]));
+            }
+            set {
+                this["FocusStopPosition"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("20")]
+        public int CalibrationLargeSteps {
+            get {
+                return ((int)(this["CalibrationLargeSteps"]));
+            }
+            set {
+                this["CalibrationLargeSteps"] = value;
+            }
+        }
+		        
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("True")]
