@@ -47,6 +47,8 @@ namespace RTG.ManualFocuser {
             // This helper class can be used to store plugin settings that are dependent on the current profile
             this.pluginSettings = new PluginOptionsAccessor(profileService, Guid.Parse(this.Identifier));
             this.profileService = profileService;
+            ManualFocuser.ProfileService = profileService; // Ensure static reference is initialized
+
             if (File.Exists(lensesConfigPath))
             {
                 var lenses = Newtonsoft.Json.JsonConvert.DeserializeObject<ObservableCollection<LensConfig>>(File.ReadAllText(lensesConfigPath));
@@ -199,11 +201,11 @@ namespace RTG.ManualFocuser {
             double focalLength = ProfileService.ActiveProfile.TelescopeSettings.FocalLength;
             var lens = instance.KnownLenses.Where(x => x.LensName == name).FirstOrDefault();
             if (lens is not null)
-            {
+                {
                 var config = lens.FocusPosition.Where(x => x.FocalLength == focalLength).FirstOrDefault();
                 if (config is not null)
-                {
-                    return config.FocusPosition;
+                    {
+                        return config.FocusPosition;
                 }
             }
             return 0;

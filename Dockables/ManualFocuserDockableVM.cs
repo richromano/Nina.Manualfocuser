@@ -206,6 +206,10 @@ namespace RTG.ManualFocuser.Dockables {
             this.filterWheelMediator = filterWheelMediator;
             this.guiderMediator = guiderMediator;
 
+            // Ensure static plugin helpers have the mediators so static calls won't NRE
+            RTG.ManualFocuser.ManualFocuser.Camera = cameraMediator;
+            RTG.ManualFocuser.ManualFocuser.Focuser = focuserMediator;
+
             Title = "Manual Focuser";
 
             TargetPosition = Properties.Settings.Default.TargetPosition;
