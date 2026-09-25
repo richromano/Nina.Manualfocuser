@@ -210,5 +210,23 @@ namespace RTG.ManualFocuser {
             }
             return 0;
         }
+
+        public static event Func<Task> LinearAFRequested;
+
+        /// <summary>
+        /// Invoked by external components (sequence item) to request a linear AF run.
+        /// Returns completed Task if no handler is registered.
+        /// </summary>
+        public static Task RequestLinearAFAsync() {
+            try {
+                var handler = LinearAFRequested;
+                if (handler == null) return Task.CompletedTask;
+                return handler.Invoke();
+            } catch (Exception e) {
+                // Do not throw — sequence should not crash NINA
+                Logger.Error("Error invoking LinearAFRequested", e);
+                return Task.CompletedTask;
+            }
+        }
     }
 }

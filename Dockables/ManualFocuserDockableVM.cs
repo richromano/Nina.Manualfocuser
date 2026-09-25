@@ -55,6 +55,8 @@ namespace RTG.ManualFocuser.Dockables {
         private readonly ITelescopeMediator telescopeMediator;
         private readonly IGuiderMediator guiderMediator;
         private readonly ManualFocuserModel DataModel;
+        // Add a field to hold the handler so we can unsubscribe
+        private readonly Func<Task> linearAfHandler;
         public FocuserInfo FocuserInfo { get; private set; }
         public TelescopeInfo TelescopeInfo { get; private set; }
         public CameraInfo CameraInfo { get; private set; }
@@ -223,6 +225,9 @@ namespace RTG.ManualFocuser.Dockables {
 
             this.DataModel = new ManualFocuserModel(profileService, imagingMediator, cameraMediator, starDetectionSelector, starAnnotatorSelector);
 
+            // In the constructor, after DataModel initialization, subscribe:
+            this.linearAfHandler = () => ExecuteLinearAFAsync();
+            RTG.ManualFocuser.ManualFocuser.LinearAFRequested += this.linearAfHandler;
 
             ClearChartCommand = new global::NINA.Core.Utility.RelayCommand(_ => {
                 try {
@@ -271,6 +276,7 @@ namespace RTG.ManualFocuser.Dockables {
 
         public void Dispose() {
             // On shutdown cleanup
+            try { RTG.ManualFocuser.ManualFocuser.LinearAFRequested -= this.linearAfHandler; } catch { }
             try { this.moveCts?.Cancel(); } catch { }
             try { this.moveCts?.Dispose(); } catch { }
             try { this.captureCts?.Cancel(); } catch { }
